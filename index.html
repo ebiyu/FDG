@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>canvasで図形を描く</title>
+</head>
+<body>
+<canvas width="1000" height="500" id="sample" style="background-color:yellow;"></canvas>
+<div id="time"></div>
+<button style="width:1000px;height:100px;line-height:100px;text-align:center;background-color:pink;" id="startButton">
+START！
+</button>
+<script type="text/javascript">
+var canvas = document.getElementById('sample');
+
+var beginPoint = {x: 100, y: 50};
+var ctrlPoint = [{x: 400, y: 200}, {x: 100, y: 300}];
+var endPoint = {x: 900, y: 450};
+var ballVisible = false;
+var s = 0;
+var t = 0;
+var dt = 0.1;
+
+var dragging = -1;
+
+canvas.addEventListener('mousedown', onDown, false);
+canvas.addEventListener('mousemove', onMove, false);
+canvas.addEventListener('mouseup', onUp, false);
+
+function fx(s){
+    return (
+        (1 - s) ** 3 * beginPoint.x 
+        + 3 * (1 - s) ** 2 * s * ctrlPoint[0].x
+        + 3 * (1 - s) * s ** 2 * ctrlPoint[1].x
+        + s ** 3 * endPoint.x 
+        );
+}
+function fy(s){
+    return (
+        (1 - s) ** 3 * beginPoint.y 
+        + 3 * (1 - s) ** 2 * s * ctrlPoint[0].y
+        + 3 * (1 - s) * s ** 2 * ctrlPoint[1].y
+        + s ** 3 * endPoint.y
+    );
+}
+
+function fdx(s){
+    return (
+        -3 * (1 - s) ** 2 * beginPoint.x
+        + 3 * (3 * s ** 2 - 4 * s + 1) * ctrlPoint[0].x
+        + 3 * (2 - 3 * s) * s * ctrlPoint[1].x
+        + 3 * s ** 2 * endPoint.x
+    );
+}
+function fdy(s){
+    return (
+        -3 * (1 - s) ** 2 * beginPoint.y
+        + 3 * (3 * s ** 2 - 4 * s + 1) * ctrlPoint[0].y
+        + 3 * (2 - 3 * s) * s * ctrlPoint[1].y
+        + 3 * s ** 2 * endPoint.y
+    );
+}
+
+function v(y){
+    return (2 * 9.8 * y) ** 0.5;
+}
+
+document.getElementById("startButton").addEventListener('mousedown', moveBall, false);
+
+function moveBall(){
+    ballVisible = true;
+    t = 0;
+    s = 0.01; //微小にずらす
+    var id = setInterval(function(){
+        refresh();
+        if(fy(s) < beginPoint.y ){
+            refresh();
+            clearInterval(id);
+            return;
+        }
+        t += dt;
+        s += v(fy(s) - beginPoint.y)/(fdx(s)**2+fdy(s)**2)**0.5*dt;
+        if(s >= 1){
+            s = 1;
+            refresh();
+            clearInterval(id);
+        }else if(s <= 0){
+            s = 0;
+            refresh();
+            clearInterval(id);   
+        }
+        document.getElementById("time").innerHTML = t.toFixed(1);
+    }, 10);
+}
+
+function onDown(e) {
+    const rect = canvas.getBoundingClientRect();
+
+    var x = e.clientX - rect.left;
+    var y = e.clientY - rect.top;
+
+    var r = 20;
+    for(var i = 0; i < 2; i++){
+        if ((x - ctrlPoint[i].x) ** 2 + (y - ctrlPoint[i].y) ** 2 < r ** 2) {
+            dragging = i;  
+        }
+    }
+}
+
+function onMove(e) {
+    const rect = canvas.getBoundingClientRect();
+
+    var x = e.clientX - rect.left;
+    var y = e.clientY - rect.top;
+
+    if (dragging != -1) {
+        ctrlPoint[dragging].x = x;
+        ctrlPoint[dragging].y = y;
+        refresh();
+    }
+}
+
+function onUp(e) {
+  dragging = -1;
+}
+
+function refresh() {
+    var context = canvas.getContext('2d');
+    context.clearRect(0, 0, 1000, 500);
+
+    context.lineWidth = 5;
+    context.beginPath();
+    context.moveTo(beginPoint.x, beginPoint.y);
+    context.bezierCurveTo(ctrlPoint[0].x, ctrlPoint[0].y, ctrlPoint[1].x, ctrlPoint[1].y ,endPoint.x, endPoint.y);
+    context.stroke();
+    
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(beginPoint.x, beginPoint.y);
+    context.lineTo(ctrlPoint[0].x, ctrlPoint[0].y);
+    context.stroke();
+    
+    context.beginPath();
+    context.moveTo(ctrlPoint[1].x, ctrlPoint[1].y);
+    context.lineTo(endPoint.x, endPoint.y);
+    context.stroke();
+    
+    var r = 20;
+
+    context.fillStyle = "black";
+
+    context.beginPath();
+    context.arc( ctrlPoint[0].x, ctrlPoint[0].y, r, 0, 2 * Math.PI, false ) ;
+    context.fill();
+    
+    context.beginPath();
+    context.arc( ctrlPoint[1].x, ctrlPoint[1].y, r, 0, 2 * Math.PI, false ) ;
+    context.fill();
+
+    if(ballVisible){
+        var r = 50;
+
+        context.fillStyle = "red";
+        
+        context.beginPath();
+        context.arc(fx(s), fy(s), r, 0, 2 * Math.PI, false);
+        context.fill();
+    }
+}
+refresh();
+</script>
+</body>
+</html>
