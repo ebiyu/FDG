@@ -22,10 +22,19 @@ var t = 0;
 var dt = 0.1;
 
 var dragging = -1;
+var touching = -1;
+
+var ball_color = "blue";
+var pt_color = ["gray", "gray"];
 
 canvas.addEventListener('mousedown', onDown, false);
 canvas.addEventListener('mousemove', onMove, false);
 canvas.addEventListener('mouseup', onUp, false);
+
+canvas.addEventListener('touchstart', onTouchStart, false);
+canvas.addEventListener('touchmove', onTouchMove, false);
+canvas.addEventListener('touchend', onTouchEnd, false);
+
 
 function fx(s){
     return (
@@ -124,6 +133,45 @@ function onUp(e) {
   dragging = -1;
 }
 
+function onTouchStart(e){
+    const rect = canvas.getBoundingClientRect();
+
+    var x = e.changedTouches[0].pageX - rect.left;
+    var y = e.changedTouches[0].pageY - rect.top;
+
+    var r = 200;
+    for(var i = 0; i < 2; i++){
+        if ((x - ctrlPoint[i].x) ** 2 + (y - ctrlPoint[i].y) ** 2 < r ** 2) {
+            touching = i;  
+        }
+    }
+    
+    pt_color[touching] = "red";
+    refresh();
+
+}
+
+function onTouchMove(e){
+    e.preventDefault();
+    
+    const rect = canvas.getBoundingClientRect();
+
+    var x = e.changedTouches[0].pageX - rect.left;
+    var y = e.changedTouches[0].pageY - rect.top;
+
+    if (touching != -1) {
+        ctrlPoint[touching].x = x;
+        ctrlPoint[touching].y = y;
+        refresh();
+    }
+}
+ 
+function onTouchEnd(e){
+    pt_color[touching] = "gray";
+    refresh();
+    touching = -1;
+}
+
 function refresh() {
     var context = canvas.getContext('2d');
     context.clearRect(0, 0, 1000, 500);
@@ -147,11 +195,13 @@ function refresh() {
     
     var r = 20;
 
-    context.fillStyle = "black";
+    context.fillStyle = pt_color[0];
 
     context.beginPath();
     context.arc( ctrlPoint[0].x, ctrlPoint[0].y, r, 0, 2 * Math.PI, false ) ;
     context.fill();
+    
+    context.fillStyle = pt_color[1];
     
     context.beginPath();
     context.arc( ctrlPoint[1].x, ctrlPoint[1].y, r, 0, 2 * Math.PI, false ) ;
@@ -160,7 +210,7 @@ function refresh() {
     if(ballVisible){
         var r = 50;
 
-        context.fillStyle = "red";
+        context.fillStyle = ball_color;
         
         context.beginPath();
         context.arc(fx(s), fy(s), r, 0, 2 * Math.PI, false);
